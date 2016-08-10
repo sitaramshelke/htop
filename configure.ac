@@ -43,6 +43,9 @@ openbsd*)
 darwin*)
    my_htop_platform=darwin
    ;;
+pcp*)
+   my_htop_platform=pcp
+   ;;
 *)
    my_htop_platform=unsupported
    ;;
@@ -206,7 +209,7 @@ else
       HTOP_CHECK_LIB([ncurses],  [refresh], [HAVE_LIBNCURSES],
       missing_libraries="$missing_libraries libncurses"
    ))))
-   
+
    AC_CHECK_HEADERS([curses.h],[:],
       [AC_CHECK_HEADERS([ncurses/curses.h],[:],
          [AC_CHECK_HEADERS([ncurses/ncurses.h],[:],
@@ -247,6 +250,14 @@ if test "x$enable_hwloc" = xyes
 then
    AC_CHECK_LIB([hwloc], [hwloc_get_proc_cpubind], [], [missing_libraries="$missing_libraries libhwloc"])
    AC_CHECK_HEADERS([hwloc.h],[:], [missing_headers="$missing_headers $ac_header"])
+fi
+
+# Check if pcp platform available
+#----------------------------------------------------------------------
+AC_ARG_ENABLE(pcp, [AS_HELP_STRING([--enable-pcp], [use pcp as a platform ])], enable_pcp="yes", enable_pcp="no")
+if test "x$enable_pcp" = xyes; then
+   # An enabled pcp means we are using pcp as a source.
+   my_htop_platform=pcp
 fi
 
 # Bail out on errors.
