@@ -256,8 +256,8 @@ fi
 #----------------------------------------------------------------------
 AC_ARG_ENABLE(pcp, [AS_HELP_STRING([--enable-pcp], [use pcp as a platform ])], enable_pcp="yes", enable_pcp="no")
 if test "x$enable_pcp" = xyes; then
-   # An enabled pcp means we are using pcp as a source.
-   my_htop_platform=pcp
+   # An enabled pcp means we are using pcp as a source.
+   my_htop_platform=pcp
 fi
 
 # Bail out on errors.
@@ -278,6 +278,7 @@ AM_CONDITIONAL([HTOP_FREEBSD], [test "$my_htop_platform" = freebsd])
 AM_CONDITIONAL([HTOP_OPENBSD], [test "$my_htop_platform" = openbsd])
 AM_CONDITIONAL([HTOP_DARWIN], [test "$my_htop_platform" = darwin])
 AM_CONDITIONAL([HTOP_UNSUPPORTED], [test "$my_htop_platform" = unsupported])
+AM_CONDITIONAL([HTOP_PCP], [test "$my_htop_platform" = pcp])
 AC_SUBST(my_htop_platform)
 AC_CONFIG_FILES([Makefile htop.1])
 AC_OUTPUT
