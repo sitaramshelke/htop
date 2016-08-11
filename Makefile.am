@@ -80,6 +80,16 @@ unsupported/UnsupportedProcess.h unsupported/UnsupportedProcessList.h \
 unsupported/UnsupportedCRT.h unsupported/Battery.h
 endif
 
+if HTOP_PCP
+myhtopplatsources = pcp/Platform.c \
+pcp/UnsupportedProcess.c pcp/UnsupportedProcessList.c \
+pcp/UnsupportedCRT.c pcp/Battery.c
+
+myhtopplatheaders = pcp/Platform.h \
+pcp/UnsupportedProcess.h pcp/UnsupportedProcessList.h \
+pcp/UnsupportedCRT.h pcp/Battery.h
+endif
+
 SUFFIXES = .h
 
 BUILT_SOURCES = $(myhtopheaders) $(myhtopplatheaders)

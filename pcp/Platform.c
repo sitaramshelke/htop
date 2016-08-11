@@ -94,7 +94,7 @@ ProcessPidColumn Process_pidColumns[] = {
 };
 
 int Platform_getUptime() {
-   return 0;
+   return 123;
 }
 
 void Platform_getLoadAverage(double* one, double* five, double* fifteen) {
@@ -127,7 +127,6 @@ bool Process_isThread(Process* this) {
 }
 
 char* Platform_getProcessEnv(pid_t pid) {
-   printf("\n\n\n=====djgnjkfsjgbaskjfgb======\n\n\n);
    (void) pid;
    return NULL;
 }
