@@ -11,12 +11,10 @@ in the source distribution for its full text.
 
 #include "Settings.h"
 
-#define Process_delete UnsupportedProcess_delete
 
 
 Process* UnsupportedProcess_new(Settings* settings);
 
-void UnsupportedProcess_delete(Object* cast);
-
+void Process_delete(Object* cast);
 
 #endif

@@ -23,11 +23,10 @@ Process* UnsupportedProcess_new(Settings* settings) {
    return this;
 }
 
-void UnsupportedProcess_delete(Object* cast) {
+void Process_delete(Object* cast) {
    Process* this = (Process*) cast;
    Object_setClass(this, Class(Process));
    Process_done((Process*)cast);
    // free platform-specific fields here
    free(this);
 }
-
