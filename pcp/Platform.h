@@ -10,12 +10,15 @@ Released under the GNU GPL, see the COPYING file
 in the source distribution for its full text.
 */
 
+#define NONE 0
 #include "Action.h"
 #include "BatteryMeter.h"
 #include "SignalsPanel.h"
 #include "UnsupportedProcess.h"
 
 extern SignalItem Platform_signals[];
+
+extern int pcp_context;
 
 extern unsigned int Platform_numberOfSignals;
 

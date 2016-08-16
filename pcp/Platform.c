@@ -6,6 +6,7 @@ Released under the GNU GPL, see the COPYING file
 in the source distribution for its full text.
 */
 
+#include <pcp/pmapi.h>
 #include "Platform.h"
 #include "CPUMeter.h"
 #include "MemoryMeter.h"
@@ -16,6 +17,7 @@ in the source distribution for its full text.
 #include "HostnameMeter.h"
 #include "UptimeMeter.h"
 
+#define NONE 0
 /*{
 #include "Action.h"
 #include "BatteryMeter.h"
@@ -26,6 +28,8 @@ in the source distribution for its full text.
 SignalItem Platform_signals[] = {
    { .name = " 0 Cancel",    .number =  0 },
 };
+
+int pcp_context = -1;
 
 unsigned int Platform_numberOfSignals = sizeof(Platform_signals)/sizeof(SignalItem);
 
@@ -93,14 +97,65 @@ ProcessPidColumn Process_pidColumns[] = {
    { .id = 0, .label = NULL },
 };
 
+static int lookupMetric(char *metric, pmAtomValue *atom, int type, int inst) {
+   // Create context
+   if(pcp_context == -1) {
+      pcp_context = pmNewContext(PM_CONTEXT_LOCAL, "local:");
+   }
+   // Still no context, bail out
+   if(pcp_context < 0) {
+      return -1;
+   }
+
+   pmID pmid;
+
+   // Get the PMID.
+   if(pmLookupName(1, &metric, &pmid) < 0) {
+      return -1;
+   }
+
+   // Do the fetch
+   pmResult *result;
+   if(pmFetch(1, &pmid, &result) < 0) {
+      return -1;
+   }
+
+   // Extract
+   pmValueSet *res = result[0].vset[0];
+   pmExtractValue(res->valfmt, &res->vlist[inst], type, atom, type);
+
+   pmFreeResult(result);
+  //  pmDestroyContext(pcp_context);
+
+   return 0;
+}
+
 int Platform_getUptime() {
-   return 123;
+
+   pmAtomValue uptime_atom;
+
+   if(lookupMetric("kernel.all.uptime", &uptime_atom, PM_TYPE_U32, NONE) < 0) {
+      // TODO: is -1 appropriate here?
+      return -1;
+   }
+
+   return uptime_atom.ul;
 }
 
 void Platform_getLoadAverage(double* one, double* five, double* fifteen) {
-   *one = 0;
-   *five = 0;
-   *fifteen = 0;
+  pmAtomValue loadavg_atom;
+  if(lookupMetric("kernel.all.load", &loadavg_atom, PM_TYPE_FLOAT, 0) < 0){
+    *one = 0;
+  }
+   *one = loadavg_atom.f;
+   if(lookupMetric("kernel.all.load", &loadavg_atom, PM_TYPE_FLOAT, 1) < 0){
+     *five = 0;
+   }
+   *five = loadavg_atom.f;
+   if(lookupMetric("kernel.all.load", &loadavg_atom, PM_TYPE_FLOAT, 2) < 0){
+     *fifteen = 0;
+   }
+   *fifteen = loadavg_atom.f;
 }
 
 int Platform_getMaxPid() {
@@ -114,7 +169,37 @@ double Platform_setCPUValues(Meter* this, int cpu) {
 }
 
 void Platform_setMemoryValues(Meter* this) {
-   (void) this;
+   pmAtomValue mem_atom;
+   unsigned long long int usedMem, buffersMem, cachedMem, totalMem;
+   if(lookupMetric("hinv.physmem", &mem_atom, PM_TYPE_U32, NONE) < 0){
+     this->total = 0;
+   }
+   totalMem = (mem_atom.ul * 1024);
+   if(lookupMetric("mem.util.used", &mem_atom, PM_TYPE_U64, NONE) < 0){
+     this->values[0] = 0;
+   }
+   usedMem = mem_atom.ull;
+   if(lookupMetric("mem.util.bufmem", &mem_atom, PM_TYPE_U64, NONE) < 0){
+     this->values[1] = 0;
+   }
+   buffersMem = mem_atom.ull;
+   if(lookupMetric("mem.util.cached", &mem_atom, PM_TYPE_U64, NONE) < 0){
+     this->values[2] = 0;
+   }
+   cachedMem = mem_atom.ull;
+   usedMem -= buffersMem + cachedMem;
+   this->values[0] = usedMem;
+   this->values[1] = buffersMem;
+   this->values[2] = cachedMem;
+   this->total = totalMem;
+  // usedMem = 10000;
+  // buffersMem = 1000;
+  // cachedMem = 1000;
+  // usedMem -= buffersMem + cachedMem;
+  // this->values[0] = usedMem;
+  // this->values[1] = buffersMem;
+  // this->values[2] = cachedMem;
+  // this->total = 100000;
 }
 
 void Platform_setSwapValues(Meter* this) {

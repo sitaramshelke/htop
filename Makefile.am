@@ -13,7 +13,7 @@ pixmapdir = $(datadir)/pixmaps
 pixmap_DATA = htop.png
 
 htop_CFLAGS = -pedantic -Wall $(wextra_flag) -std=c99 -D_XOPEN_SOURCE_EXTENDED -DSYSCONFDIR=\"$(sysconfdir)\" -I"$(top_srcdir)/$(my_htop_platform)"
-htop_LDFLAGS = 
+htop_LDFLAGS = -lpcp
 AM_CPPFLAGS = -DNDEBUG
 
 myhtopsources = AvailableMetersPanel.c CategoriesPanel.c CheckItem.c \
