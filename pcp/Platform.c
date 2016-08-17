@@ -192,14 +192,6 @@ void Platform_setMemoryValues(Meter* this) {
    this->values[1] = buffersMem;
    this->values[2] = cachedMem;
    this->total = totalMem;
-  // usedMem = 10000;
-  // buffersMem = 1000;
-  // cachedMem = 1000;
-  // usedMem -= buffersMem + cachedMem;
-  // this->values[0] = usedMem;
-  // this->values[1] = buffersMem;
-  // this->values[2] = cachedMem;
-  // this->total = 100000;
 }
 
 void Platform_setSwapValues(Meter* this) {
