@@ -195,7 +195,19 @@ void Platform_setMemoryValues(Meter* this) {
 }
 
 void Platform_setSwapValues(Meter* this) {
-   (void) this;
+   pmAtomValue swap_atom;
+   unsigned long long int totalSwap, usedSwap, freeSwap;
+   if(lookupMetric("mem.util.swapTotal", &swap_atom, PM_TYPE_U64, NONE) < 0){
+     (void) this;
+   }
+   totalSwap = swap_atom.ull;
+   if(lookupMetric("mem.util.swapFree", &swap_atom, PM_TYPE_U64, NONE) < 0){
+     (void) this;
+   }
+   freeSwap = swap_atom.ull;
+   usedSwap = totalSwap - freeSwap;
+   this->total = totalSwap;
+   this->values[0] = usedSwap;
 }
 
 bool Process_isThread(Process* this) {
