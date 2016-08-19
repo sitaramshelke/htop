@@ -122,8 +122,10 @@ static int lookupMetric(char *metric, pmAtomValue *atom, int type, int inst) {
 
    // Extract
    pmValueSet *res = result[0].vset[0];
-   pmExtractValue(res->valfmt, &res->vlist[inst], type, atom, type);
-
+   int i;
+   for(i = 0;i < inst; i++){
+     pmExtractValue(res->valfmt, &res->vlist[i], type, &atom[i], type);
+   }
    pmFreeResult(result);
   //  pmDestroyContext(pcp_context);
 
@@ -132,30 +134,26 @@ static int lookupMetric(char *metric, pmAtomValue *atom, int type, int inst) {
 
 int Platform_getUptime() {
 
-   pmAtomValue uptime_atom;
+   pmAtomValue uptime_atom[1];
 
-   if(lookupMetric("kernel.all.uptime", &uptime_atom, PM_TYPE_U32, NONE) < 0) {
+   if(lookupMetric("kernel.all.uptime", uptime_atom, PM_TYPE_U32, 1) < 0) {
       // TODO: is -1 appropriate here?
       return -1;
    }
 
-   return uptime_atom.ul;
+   return uptime_atom[0].ul;
 }
 
 void Platform_getLoadAverage(double* one, double* five, double* fifteen) {
-  pmAtomValue loadavg_atom;
-  if(lookupMetric("kernel.all.load", &loadavg_atom, PM_TYPE_FLOAT, 0) < 0){
+  pmAtomValue loadavg_atom[3];
+  if(lookupMetric("kernel.all.load", loadavg_atom, PM_TYPE_FLOAT, 3) < 0){
     *one = 0;
+    *five = 0;
+    *fifteen = 0;
   }
-   *one = loadavg_atom.f;
-   if(lookupMetric("kernel.all.load", &loadavg_atom, PM_TYPE_FLOAT, 1) < 0){
-     *five = 0;
-   }
-   *five = loadavg_atom.f;
-   if(lookupMetric("kernel.all.load", &loadavg_atom, PM_TYPE_FLOAT, 2) < 0){
-     *fifteen = 0;
-   }
-   *fifteen = loadavg_atom.f;
+   *one = loadavg_atom[0].f;
+   *five = loadavg_atom[1].f;
+   *fifteen = loadavg_atom[2].f;
 }
 
 int Platform_getMaxPid() {
@@ -169,24 +167,24 @@ double Platform_setCPUValues(Meter* this, int cpu) {
 }
 
 void Platform_setMemoryValues(Meter* this) {
-   pmAtomValue mem_atom;
+   pmAtomValue mem_atom[1];
    unsigned long long int usedMem, buffersMem, cachedMem, totalMem;
-   if(lookupMetric("hinv.physmem", &mem_atom, PM_TYPE_U32, NONE) < 0){
+   if(lookupMetric("hinv.physmem", mem_atom, PM_TYPE_U32, 1) < 0){
      this->total = 0;
    }
-   totalMem = (mem_atom.ul * 1024);
-   if(lookupMetric("mem.util.used", &mem_atom, PM_TYPE_U64, NONE) < 0){
+   totalMem = (mem_atom[0].ul * 1024);
+   if(lookupMetric("mem.util.used", mem_atom, PM_TYPE_U64, 1) < 0){
      this->values[0] = 0;
    }
-   usedMem = mem_atom.ull;
-   if(lookupMetric("mem.util.bufmem", &mem_atom, PM_TYPE_U64, NONE) < 0){
+   usedMem = mem_atom[0].ull;
+   if(lookupMetric("mem.util.bufmem", mem_atom, PM_TYPE_U64, 1) < 0){
      this->values[1] = 0;
    }
-   buffersMem = mem_atom.ull;
-   if(lookupMetric("mem.util.cached", &mem_atom, PM_TYPE_U64, NONE) < 0){
+   buffersMem = mem_atom[0].ull;
+   if(lookupMetric("mem.util.cached", mem_atom, PM_TYPE_U64, 1) < 0){
      this->values[2] = 0;
    }
-   cachedMem = mem_atom.ull;
+   cachedMem = mem_atom[0].ull;
    usedMem -= buffersMem + cachedMem;
    this->values[0] = usedMem;
    this->values[1] = buffersMem;
@@ -195,16 +193,16 @@ void Platform_setMemoryValues(Meter* this) {
 }
 
 void Platform_setSwapValues(Meter* this) {
-   pmAtomValue swap_atom;
+   pmAtomValue swap_atom[1];
    unsigned long long int totalSwap, usedSwap, freeSwap;
-   if(lookupMetric("mem.util.swapTotal", &swap_atom, PM_TYPE_U64, NONE) < 0){
+   if(lookupMetric("mem.util.swapTotal", swap_atom, PM_TYPE_U64, 1) < 0){
      (void) this;
    }
-   totalSwap = swap_atom.ull;
-   if(lookupMetric("mem.util.swapFree", &swap_atom, PM_TYPE_U64, NONE) < 0){
+   totalSwap = swap_atom[0].ull;
+   if(lookupMetric("mem.util.swapFree", swap_atom, PM_TYPE_U64, 1) < 0){
      (void) this;
    }
-   freeSwap = swap_atom.ull;
+   freeSwap = swap_atom[0].ull;
    usedSwap = totalSwap - freeSwap;
    this->total = totalSwap;
    this->values[0] = usedSwap;
