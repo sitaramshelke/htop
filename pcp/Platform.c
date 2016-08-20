@@ -19,6 +19,12 @@ in the source distribution for its full text.
 
 #define NONE 0
 /*{
+typedef struct _cpuValues{
+  unsigned long long int user, nice, sys, guest_nice, steal, iowait, guest, irq, soft, total, idle;
+} cpuValues;
+}*/
+
+/*{
 #include "Action.h"
 #include "BatteryMeter.h"
 #include "SignalsPanel.h"
@@ -160,10 +166,74 @@ int Platform_getMaxPid() {
    return 1;
 }
 
+int get_cpuValues(cpuValues *values) {
+  pmAtomValue cpu_atom[1];
+
+  if(lookupMetric("kernel.all.cpu.guest_nice", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->guest_nice = cpu_atom[0].ull;
+  if(lookupMetric("kernel.all.cpu.nice", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->nice = cpu_atom[0].ull;
+  values->nice -= values->guest_nice;
+  if(lookupMetric("kernel.all.cpu.guest", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->guest = cpu_atom[0].ull;
+  if(lookupMetric("kernel.all.cpu.user", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->user = cpu_atom[0].ull;
+  values->user -= values->guest;
+  if(lookupMetric("kernel.all.cpu.sys", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->sys = cpu_atom[0].ull;
+  if(lookupMetric("kernel.all.cpu.irq.hard", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->irq = cpu_atom[0].ull;
+  if(lookupMetric("kernel.all.cpu.irq.soft", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->soft = cpu_atom[0].ull;
+  if(lookupMetric("kernel.all.cpu.steal", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->steal = cpu_atom[0].ull;
+  if(lookupMetric("kernel.all.cpu.wait.total", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->iowait = cpu_atom[0].ull;
+  if(lookupMetric("kernel.all.cpu.idle", cpu_atom, PM_TYPE_U64, 1) < 0){
+    return 0;
+  }
+  values->idle = cpu_atom[0].ull;
+  values->total = values->user + values->nice + values->sys + values->steal + values->idle + values->iowait + values->irq + values->soft;
+  return 1;
+}
+
 double Platform_setCPUValues(Meter* this, int cpu) {
-   (void) this;
-   (void) cpu;
-   return 0.0;
+   cpuValues val;
+
+   int status = get_cpuValues(&val);
+   if(status == 0){
+     return 0.0;
+   }
+   double* v = this->values;
+   v[CPU_METER_NICE]    = ((double)val.nice / val.total) * 100.0;
+   v[CPU_METER_NORMAL]  = ((double)val.user / val.total) * 100.0;
+   v[CPU_METER_KERNEL]  = ((double)val.sys / val.total) * 100.0;
+   v[CPU_METER_IRQ]     = ((double)val.irq / val.total) * 100.0;
+   v[CPU_METER_SOFTIRQ] = ((double)val.soft / val.total) * 100.0;
+   v[CPU_METER_STEAL]   = ((double)val.steal / val.total) * 100.0;
+   v[CPU_METER_GUEST]   = ((double)val.guest / val.total) * 100.0;
+   v[CPU_METER_IOWAIT]  = ((double)val.iowait / val.total) * 100.0;
+
+   double percent = v[0]+v[1]+v[2]+v[3]+v[4]+v[5]+v[6];
+   return percent;
 }
 
 void Platform_setMemoryValues(Meter* this) {

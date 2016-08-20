@@ -11,6 +11,10 @@ in the source distribution for its full text.
 */
 
 #define NONE 0
+typedef struct _cpuValues{
+  unsigned long long int user, nice, sys, guest_nice, steal, iowait, guest, irq, soft, total, idle;
+} cpuValues;
+
 #include "Action.h"
 #include "BatteryMeter.h"
 #include "SignalsPanel.h"
@@ -41,6 +45,8 @@ int Platform_getUptime();
 void Platform_getLoadAverage(double* one, double* five, double* fifteen);
 
 int Platform_getMaxPid();
+
+int get_cpuValues(cpuValues *values);
 
 double Platform_setCPUValues(Meter* this, int cpu);
 
