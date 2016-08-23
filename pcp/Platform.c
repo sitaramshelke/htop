@@ -6,8 +6,9 @@ Released under the GNU GPL, see the COPYING file
 in the source distribution for its full text.
 */
 
-#include <pcp/pmapi.h>
+#include "Pcp.h"
 #include "Platform.h"
+#include "PcpProcessList.h"
 #include "CPUMeter.h"
 #include "MemoryMeter.h"
 #include "SwapMeter.h"
@@ -35,7 +36,6 @@ SignalItem Platform_signals[] = {
    { .name = " 0 Cancel",    .number =  0 },
 };
 
-int pcp_context = -1;
 
 unsigned int Platform_numberOfSignals = sizeof(Platform_signals)/sizeof(SignalItem);
 
@@ -103,40 +103,7 @@ ProcessPidColumn Process_pidColumns[] = {
    { .id = 0, .label = NULL },
 };
 
-static int lookupMetric(char *metric, pmAtomValue *atom, int type, int inst) {
-   // Create context
-   if(pcp_context == -1) {
-      pcp_context = pmNewContext(PM_CONTEXT_LOCAL, "local:");
-   }
-   // Still no context, bail out
-   if(pcp_context < 0) {
-      return -1;
-   }
 
-   pmID pmid;
-
-   // Get the PMID.
-   if(pmLookupName(1, &metric, &pmid) < 0) {
-      return -1;
-   }
-
-   // Do the fetch
-   pmResult *result;
-   if(pmFetch(1, &pmid, &result) < 0) {
-      return -1;
-   }
-
-   // Extract
-   pmValueSet *res = result[0].vset[0];
-   int i;
-   for(i = 0;i < inst; i++){
-     pmExtractValue(res->valfmt, &res->vlist[i], type, &atom[i], type);
-   }
-   pmFreeResult(result);
-  //  pmDestroyContext(pcp_context);
-
-   return 0;
-}
 
 int Platform_getUptime() {
 
@@ -166,51 +133,96 @@ int Platform_getMaxPid() {
    return 1;
 }
 
-int get_cpuValues(cpuValues *values) {
-  pmAtomValue cpu_atom[1];
-
-  if(lookupMetric("kernel.all.cpu.guest_nice", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
+static int get_cpuValues(cpuValues *values, int cpu) {
+  int ncpu = get_ncpu();
+  pmAtomValue cpu_atom[ncpu];
+  if(cpu == 0){
+    if(lookupMetric("kernel.all.cpu.guest_nice", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->guest_nice = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.all.cpu.nice", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->nice = cpu_atom[cpu].ull;
+    values->nice -= values->guest_nice;
+    if(lookupMetric("kernel.all.cpu.guest", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->guest = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.all.cpu.user", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->user = cpu_atom[cpu].ull;
+    values->user -= values->guest;
+    if(lookupMetric("kernel.all.cpu.sys", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->sys = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.all.cpu.irq.hard", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->irq = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.all.cpu.irq.soft", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->soft = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.all.cpu.steal", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->steal = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.all.cpu.wait.total", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+    values->iowait = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.all.cpu.idle", cpu_atom, PM_TYPE_U64, 1) < 0){
+      return 0;
+    }
+  }else {
+    --cpu;
+    if(lookupMetric("kernel.percpu.cpu.guest_nice", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->guest_nice = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.percpu.cpu.nice", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->nice = cpu_atom[cpu].ull;
+    values->nice -= values->guest_nice;
+    if(lookupMetric("kernel.percpu.cpu.guest", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->guest = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.percpu.cpu.user", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->user = cpu_atom[cpu].ull;
+    values->user -= values->guest;
+    if(lookupMetric("kernel.percpu.cpu.sys", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->sys = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.percpu.cpu.irq.hard", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->irq = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.percpu.cpu.irq.soft", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->soft = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.percpu.cpu.steal", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->steal = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.percpu.cpu.wait.total", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
+    values->iowait = cpu_atom[cpu].ull;
+    if(lookupMetric("kernel.percpu.cpu.idle", cpu_atom, PM_TYPE_U64, ncpu) < 0){
+      return 0;
+    }
   }
-  values->guest_nice = cpu_atom[0].ull;
-  if(lookupMetric("kernel.all.cpu.nice", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->nice = cpu_atom[0].ull;
-  values->nice -= values->guest_nice;
-  if(lookupMetric("kernel.all.cpu.guest", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->guest = cpu_atom[0].ull;
-  if(lookupMetric("kernel.all.cpu.user", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->user = cpu_atom[0].ull;
-  values->user -= values->guest;
-  if(lookupMetric("kernel.all.cpu.sys", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->sys = cpu_atom[0].ull;
-  if(lookupMetric("kernel.all.cpu.irq.hard", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->irq = cpu_atom[0].ull;
-  if(lookupMetric("kernel.all.cpu.irq.soft", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->soft = cpu_atom[0].ull;
-  if(lookupMetric("kernel.all.cpu.steal", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->steal = cpu_atom[0].ull;
-  if(lookupMetric("kernel.all.cpu.wait.total", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->iowait = cpu_atom[0].ull;
-  if(lookupMetric("kernel.all.cpu.idle", cpu_atom, PM_TYPE_U64, 1) < 0){
-    return 0;
-  }
-  values->idle = cpu_atom[0].ull;
+  values->idle = cpu_atom[cpu].ull;
   values->total = values->user + values->nice + values->sys + values->steal + values->idle + values->iowait + values->irq + values->soft;
   return 1;
 }
@@ -218,7 +230,7 @@ int get_cpuValues(cpuValues *values) {
 double Platform_setCPUValues(Meter* this, int cpu) {
    cpuValues val;
 
-   int status = get_cpuValues(&val);
+   int status = get_cpuValues(&val, cpu);
    if(status == 0){
      return 0.0;
    }
@@ -231,7 +243,6 @@ double Platform_setCPUValues(Meter* this, int cpu) {
    v[CPU_METER_STEAL]   = ((double)val.steal / val.total) * 100.0;
    v[CPU_METER_GUEST]   = ((double)val.guest / val.total) * 100.0;
    v[CPU_METER_IOWAIT]  = ((double)val.iowait / val.total) * 100.0;
-
    double percent = v[0]+v[1]+v[2]+v[3]+v[4]+v[5]+v[6];
    return percent;
 }

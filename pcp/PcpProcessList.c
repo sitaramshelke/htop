@@ -1,5 +1,5 @@
 /*
-htop - UnsupportedProcessList.c
+htop - PcpProcessList.c
 (C) 2014 Hisham H. Muhammad
 Released under the GNU GPL, see the COPYING file
 in the source distribution for its full text.
@@ -7,18 +7,25 @@ in the source distribution for its full text.
 
 #include "ProcessList.h"
 #include "UnsupportedProcess.h"
-
+#include "Pcp.h"
 #include <stdlib.h>
 #include <string.h>
 
 /*{
 
 }*/
-
+int get_ncpu(void) {
+  pmAtomValue ncpu_atom[1];
+  if(lookupMetric("hinv.ncpu", ncpu_atom, PM_TYPE_U32, 1) < 0) {
+     return -1;
+  }
+  return ncpu_atom[0].ul;
+}
 ProcessList* ProcessList_new(UsersTable* usersTable, Hashtable* pidWhiteList, uid_t userId) {
    ProcessList* this = xCalloc(1, sizeof(ProcessList));
    ProcessList_init(this, Class(Process), usersTable, pidWhiteList, userId);
-   
+
+   this->cpuCount = get_ncpu();
    return this;
 }
 
@@ -69,7 +76,7 @@ void ProcessList_goThroughEntries(ProcessList* super) {
     proc->majflt = 20;
 }
 
-void UnsupportedProcessList_scan(ProcessList* this) {
+void PcpProcessList_scan(ProcessList* this) {
    (void) this;
    // stub!
 }

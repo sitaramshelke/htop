@@ -22,8 +22,6 @@ typedef struct _cpuValues{
 
 extern SignalItem Platform_signals[];
 
-extern int pcp_context;
-
 extern unsigned int Platform_numberOfSignals;
 
 extern ProcessField Platform_defaultFields[];
@@ -45,8 +43,6 @@ int Platform_getUptime();
 void Platform_getLoadAverage(double* one, double* five, double* fifteen);
 
 int Platform_getMaxPid();
-
-int get_cpuValues(cpuValues *values);
 
 double Platform_setCPUValues(Meter* this, int cpu);
 
